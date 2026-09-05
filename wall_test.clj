@@ -130,3 +130,21 @@
         (is (= (reverse order) idx) "merged newest-first across users and collections")
         (is (= 4 (count (store/index (store/users) ["posts"]))) "collections filter")
         (is (= 2 (count (store/index ["alemi"] ["posts"]))) "users filter")))))
+
+(deftest reactions
+  (let [box3 (str box "-react")]
+    (sh (str "rm -rf " (pr-str box3)))
+    (binding [store/*homes* box3]
+      (let [me (store/me) subject "sam/posts/3aaaaaaaaaaaa"]
+        (is (= "" (store/ext "reactions")) "reactions are a reference collection")
+        (is (nil? (store/find-reaction me subject "🔥")) "no reaction yet")
+        (store/write-doc! me "reactions" (tid/next-tid) {:front {:subject subject :emoji "🔥"} :body ""})
+        (store/write-doc! me "reactions" (tid/next-tid) {:front {:subject subject :emoji "👀"} :body ""})
+        (store/write-doc! "sam" "likes" (tid/next-tid) {:front {:subject subject} :body ""})
+        (is (some? (store/find-reaction me subject "🔥")) "same emoji is found")
+        (is (nil? (store/find-reaction me subject "🎉")) "a different emoji is not")
+        (is (= "🔥" (get-in (store/read-doc (store/find-reaction me subject "🔥")) [:front :emoji]))
+            "the emoji survives the disk")
+        (let [t (store/tally (store/users))]
+          (is (= ["sam"] (get-in t [subject :likes])) "tally: likes by user")
+          (is (= #{[me "🔥"] [me "👀"]} (set (get-in t [subject :reactions]))) "tally: reactions"))))))

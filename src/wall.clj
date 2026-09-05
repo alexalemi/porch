@@ -7,7 +7,9 @@
             [babashka.cli :as cli]
             [wall.tid :as tid]
             [wall.doc :as doc]
-            [wall.store :as store]))
+            [wall.store :as store]
+            [wall.fmt :as fmt]
+            [wall.tui :as tui]))
 
 ;; ── commands ───────────────────────────────────────────────────────────────
 ;; Each takes the parsed {:opts :args} map and returns an exit code (nil = 0).
@@ -111,34 +113,6 @@
              (cond-> {:url url} (:title opts) (assoc :title (:title opts)))
              "")))
 
-(defn- ago
-  "Coarse relative time. Timelines are read at a glance, and nobody needs
-   seconds of precision on a week-old post — but past a week the actual date
-   is more use than \"63d\", so it switches."
-  [us]
-  (let [s (quot (- (cljc/now-us*) us) 1000000)]
-    (cond
-      (< s 60)     "just now"
-      (< s 3600)   (str (quot s 60) "m ago")
-      (< s 86400)  (str (quot s 3600) "h ago")
-      (< s 604800) (str (quot s 86400) "d ago")
-      :else (subs (str (java.time.Instant/ofEpochMilli (quot us 1000))) 0 10))))
-
-(defn- first-line [s n]
-  (let [l (str/trim (or (first (str/split-lines (or s ""))) ""))]
-    (if (> (count l) n) (str (subs l 0 (dec n)) "…") l)))
-
-(defn- summarize
-  "One line describing an entry, by collection. Each collection puts something
-   different in the front matter, so a generic dump would bury the useful bit."
-  [collection {:keys [front body]}]
-  (case collection
-    "blog"  (str "“" (:title front) "” " (first-line body 50))
-    "links" (str (:url front) (when-let [t (:title front)] (str " — " t)))
-    "likes" (str "♥ " (:subject front))
-    "feeds" (str "⊙ " (:url front) (when-let [t (:title front)] (str " — " t)))
-    (first-line body 72)))
-
 (defn cmd-timeline
   "wall timeline [--limit N] [--user U] [--coll C] — everyone's wall, newest first."
   [{:keys [opts]}]
@@ -151,11 +125,28 @@
         n     (or (:limit opts) 20)]
     (doseq [[k u c] (take n (store/index users colls))]
       (let [d (store/read-doc (store/addr u c k))]
-        (println (format "@%s · %s · %s" u (ago (tid/micros k)) (store/addr u c k)))
+        (println (format "@%s · %s · %s" u (fmt/ago (tid/micros k)) (store/addr u c k)))
         (when-let [parent (get-in d [:front :reply :parent])]
           (println (str "  ↳ replying to " parent)))
-        (println (str "  " (summarize c d)))
+        (println (str "  " (fmt/summarize c d 72)))
         (println)))))
+
+(defn cmd-react
+  "wall react <addr> <emoji> — react to any address with an emoji."
+  [{:keys [args]}]
+  (let [[subject emoji] args]
+    (when (or (str/blank? (str subject)) (str/blank? (str emoji)))
+      (throw (ex-info "react needs an address and an emoji" {})))
+    (store/parse-addr subject)
+    ;; same emoji twice is one statement; a different emoji is a new file
+    (if-let [existing (store/find-reaction (store/me) subject emoji)]
+      (println existing)
+      (created "reactions" {:subject subject :emoji emoji} ""))))
+
+(defn cmd-tui
+  "wall tui — browse, post, reply, like and react in the terminal."
+  [_]
+  (tui/run!))
 
 (def commands
   {"tid"      cmd-tid
@@ -164,17 +155,21 @@
    "blog"  cmd-blog
    "link"  cmd-link
    "like"  cmd-like
+   "react" cmd-react
    "feed"  cmd-feed
+   "tui"   cmd-tui
    "ls"    cmd-ls
    "cat"   cmd-cat
    "users" cmd-users})
 
 (def help-lines
-  [["timeline" "[--limit N] [--user U] [--coll C]  everyone's wall, newest first"]
+  [["tui"      "                   browse, post, reply, like, react — interactively"]
+   ["timeline" "[--limit N] [--user U] [--coll C]  everyone's wall, newest first"]
    ["post"  "<text…>            a short post; --reply <addr> to reply"]
    ["blog"  "--title T [text…]  a long post; body from argv or stdin"]
    ["link"  "<url> [why…]       recommend a link; --title T"]
    ["like"  "<addr>             like any address"]
+   ["react" "<addr> <emoji>     react to any address"]
    ["feed"  "<url>              publish a feed you read; --title T"]
    ["ls"    "[user] [coll]      addresses, oldest first"]
    ["cat"   "<addr>             show one document"]

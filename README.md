@@ -17,6 +17,13 @@ Every user has their own `~/.wall/` which contains files they author.
 	feeds/<tid>				# RSS feeds you recommend
 	
 
+`wall` is the command line tool (`wall post`, `wall like`, `wall react`,
+`wall timeline` …) and `wall tui` is a keyboard-driven front end over the same
+files. It's written in [cljc](../cljc); the TUI needs cljc's `cljc/raw-mode*`,
+`cljc/read-key*` and `cljc/term-size*` natives, and deliberately not ncurses:
+that would only be reachable through the FFI, which compiles and `dlopen`s a
+shared object from `/tmp` at runtime — a real hazard on a multi-user box.
+
 Where a `<tid>` is a TID: a 13-character string encoding microseconds since the
 epoch plus a small clock ID, in base32 alphabet chosen so that the alphabetical
 order is chronological. This way `ls` gives you the timeline for free and the
@@ -39,6 +46,7 @@ ever silently dropped.
  * `blog/` `title:` required: body is the article. Separate from posts so can be collapsed
  * `links/` `url:` required, `title:` optional (cli can fetch it), body is why you're recommending it
  * `likes/` `subject: <addr>` (fenced, no body) any collection can be liked, including someone's link or feed
+ * `reactions/` `subject: <addr>`, `emoji: 🔥` (fenced, no body). An emoji reaction to any address; several different emoji per subject are fine, the same one twice is one file.
  * `feeds/` - `url:` plus optional `title:` (fenced, no body). This publishes "I read this feed", A shared fetcher caches the actual entires under `/var/cache/wall/` never inside anyones `.wall` so the fetcher needs no write access to home directories.
  * `profile` - `name:`, optional `links:`, body is bio.
 

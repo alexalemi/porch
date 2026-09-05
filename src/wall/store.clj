@@ -14,7 +14,7 @@
 ;; cljc/dir?* and cljc/env* are natives and need none of that.
 
 (def text-collections #{"posts" "blog" "links"})
-(def ref-collections  #{"likes" "feeds"})
+(def ref-collections  #{"likes" "feeds" "reactions"})
 (def collections (into text-collections ref-collections))
 
 (defn me [] (or (cljc/env* "WALL_USER") (cljc/env* "USER")))
@@ -124,3 +124,32 @@
   (->> (for [u users, c collections, k (rkeys u c)] [k u c])
        (sort-by first)
        reverse))
+
+(defn find-reaction
+  "The address of user's existing reaction to `subject` with this `emoji`, or
+   nil. Several different emoji on one subject are fine; the same one twice is
+   just the same statement, so `react` reuses it."
+  [user subject emoji]
+  (->> (docs user "reactions")
+       (filter (fn [d] (and (= subject (get-in d [:front :subject]))
+                            (= emoji (get-in d [:front :emoji])))))
+       first
+       :addr))
+
+(defn tally
+  "Everyone's likes and reactions, grouped by subject:
+     {subject {:likes [user ...] :reactions [[user emoji] ...]}}
+   One pass over every likes/ and reactions/ file on the box — the reverse
+   index the filesystem doesn't keep for us. Cheap at tilde scale."
+  [users]
+  (reduce (fn [m [k u c]]
+            (let [d (read-doc (addr u c k))
+                  subject (get-in d [:front :subject])]
+              (if (nil? subject)
+                m
+                (if (= c "likes")
+                  (update-in m [subject :likes] (fnil conj []) u)
+                  (update-in m [subject :reactions] (fnil conj [])
+                             [u (get-in d [:front :emoji])])))))
+          {}
+          (index users ["likes" "reactions"])))
