@@ -1,4 +1,4 @@
-(ns wall.fmt
+(ns porch.fmt
   "One-line renderings shared by the CLI timeline and the TUI."
   (:require [clojure.string :as str]))
 

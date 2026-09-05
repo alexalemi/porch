@@ -6,9 +6,9 @@ Having all of the users on the same machine simplifies a lot, we can really
 embrace the idea that everything is a file by making everything a file, which
 is the core idea of the AT Protocol as explained in this [blog post](https://overreacted.io/a-social-filesystem/).
 
-Every user has their own `~/.wall/` which contains files they author.
+Every user has their own `~/.porch/` which contains files they author.
 
-~/.wall/
+~/.porch/
 	profile						# name, links, bio
 	posts/<tid>.md		# short posts and replies
 	blog/<tid>.md			# long posts with title
@@ -17,8 +17,8 @@ Every user has their own `~/.wall/` which contains files they author.
 	feeds/<tid>				# RSS feeds you recommend
 	
 
-`wall` is the command line tool (`wall post`, `wall like`, `wall react`,
-`wall timeline` …) and `wall tui` is a keyboard-driven front end over the same
+`porch` is the command line tool (`porch post`, `porch like`, `porch react`,
+`porch timeline` …) and `porch tui` is a keyboard-driven front end over the same
 files. It's written in [cljc](../cljc); the TUI needs cljc's `cljc/raw-mode*`,
 `cljc/read-key*` and `cljc/term-size*` natives, and deliberately not ncurses:
 that would only be reachable through the FFI, which compiles and `dlopen`s a
@@ -27,7 +27,7 @@ shared object from `/tmp` at runtime — a real hazard on a multi-user box.
 Where a `<tid>` is a TID: a 13-character string encoding microseconds since the
 epoch plus a small clock ID, in base32 alphabet chosen so that the alphabetical
 order is chronological. This way `ls` gives you the timeline for free and the
-TID is the creation time, no separate `createdAt` field is needed.  `wall tid` prints
+TID is the creation time, no separate `createdAt` field is needed.  `porch tid` prints
 a new one.
 
 The file format is markdown with a YAML front matter, the front matter is
@@ -47,7 +47,7 @@ ever silently dropped.
  * `links/` `url:` required, `title:` optional (cli can fetch it), body is why you're recommending it
  * `likes/` `subject: <addr>` (fenced, no body) any collection can be liked, including someone's link or feed
  * `reactions/` `subject: <addr>`, `emoji: 🔥` (fenced, no body). An emoji reaction to any address; several different emoji per subject are fine, the same one twice is one file.
- * `feeds/` - `url:` plus optional `title:` (fenced, no body). This publishes "I read this feed", A shared fetcher caches the actual entires under `/var/cache/wall/` never inside anyones `.wall` so the fetcher needs no write access to home directories.
+ * `feeds/` - `url:` plus optional `title:` (fenced, no body). This publishes "I read this feed", A shared fetcher caches the actual entires under `/var/cache/porch/` never inside anyones `.porch` so the fetcher needs no write access to home directories.
  * `profile` - `name:`, optional `links:`, body is bio.
 
 Addresses are `user/colection/rkey`, no file extension. we therefore have to resolve text collections to `.md` and reference collections are bare.

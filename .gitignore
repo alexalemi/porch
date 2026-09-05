@@ -1,9 +1,6 @@
 # build products
-/wall
-/wall-static
-
-# false start, kept out of history
-/wall.cljc
+/porch
+/porch-static
 
 # written by `cljc --nrepl`
 /.nrepl-port

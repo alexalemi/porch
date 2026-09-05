@@ -1,0 +1,6 @@
+#!/bin/sh
+# cljc's reader doesn't understand `#!` lines, so the shebang lives here in a
+# tiny sh trampoline instead of at the top of porch.clj. CLJC_PATH puts src/ on
+# the load path so (require '[porch.tid]) resolves regardless of your cwd.
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+CLJC_PATH="$root/src${CLJC_PATH:+:$CLJC_PATH}" exec cljc "$root/src/porch.clj" "$@"

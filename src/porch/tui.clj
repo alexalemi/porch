@@ -1,5 +1,5 @@
-(ns wall.tui
-  "A terminal front end for the wall: one scrolling timeline you can post,
+(ns porch.tui
+  "A terminal front end for the porch: one scrolling timeline you can post,
    reply, like and react from.
 
    Raw keys come from cljc/read-key* (a native, so the bundled binary stays
@@ -11,10 +11,10 @@
    discipline already does backspace, ^W, ^U and paste properly, and a post is
    one line long."
   (:require [clojure.string :as str]
-            [wall.tid :as tid]
-            [wall.doc :as doc]
-            [wall.store :as store]
-            [wall.fmt :as fmt]))
+            [porch.tid :as tid]
+            [porch.doc :as doc]
+            [porch.store :as store]
+            [porch.fmt :as fmt]))
 
 ;; ── terminal ───────────────────────────────────────────────────────────────
 
@@ -125,7 +125,7 @@
         n (count (:entries state))
         [fname _] (nth filters (:filter state))]
     (out clear home
-         bold "wall" reset dim "  " (count (:users state)) " users · " n " entries · "
+         bold "porch" reset dim "  " (count (:users state)) " users · " n " entries · "
          fname reset "\r\n")
     (doseq [i (range top (min n (+ top list-rows)))]
       (let [line (fmt/clip (row-line state i cols) (- cols 1))]
@@ -174,11 +174,11 @@
    "R          re-read the box (someone else may have posted)"
    "q / Esc    quit"
    ""
-   "Everything you write lands as a file under ~/.wall; `rm` undoes it."])
+   "Everything you write lands as a file under ~/.porch; `rm` undoes it."])
 
 (defn- show-help [state]
   (let [[rows _] (cljc/term-size*)]
-    (out clear home bold "wall — keys" reset "\r\n\r\n")
+    (out clear home bold "porch — keys" reset "\r\n\r\n")
     (doseq [l help-text] (out "  " l "\r\n"))
     (out (csi rows ";1H") dim "any key to go back" reset)
     (read-key)
@@ -277,7 +277,7 @@
    any exception, and cljc's atexit hook covers a hard exit."
   []
   (when-not (cljc/raw-mode* true)
-    (throw (ex-info "wall tui needs a terminal (stdin isn't a tty)" {})))
+    (throw (ex-info "porch tui needs a terminal (stdin isn't a tty)" {})))
   (out alt-on cursor-hide)
   (try
     (loop [state (load-state {:cursor 0 :top 0 :filter 0})]

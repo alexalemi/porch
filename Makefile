@@ -1,7 +1,7 @@
-# atilde — the `wall` command line tool.
+# atilde — the `porch` command line tool.
 #
 # Development doesn't need any of this: deps.edn puts src/ on cljc's load path,
-# so `./bin/wall ...` and `make test` run straight from source. The build target
+# so `./bin/porch ...` and `make test` run straight from source. The build target
 # is for handing a single file to a machine that has no cljc installed.
 
 PREFIX ?= $(HOME)/.local
@@ -11,39 +11,39 @@ CLJC   ?= cljc
 SHAREDIR = $(shell $(CLJC) doctor 2>/dev/null | sed -n 's/^built sharedir: *//p')
 BUNDLE   = $(SHAREDIR)/bundle.clj
 
-SRC = src/wall.clj $(wildcard src/wall/*.clj)
+SRC = src/porch.clj $(wildcard src/porch/*.clj)
 
 .PHONY: all test run clean install uninstall
-all: wall
+all: porch
 
-# bundle.clj embeds wall.clj plus every .clj it transitively requires — our
+# bundle.clj embeds porch.clj plus every .clj it transitively requires — our
 # namespaces, babashka.cli, clj-yaml, clojure.string — beside the interpreter
 # and compiles the lot. ~410K, links only libc and libm.
-wall: $(SRC) deps.edn
-	$(CLJC) $(BUNDLE) src/wall.clj $@
+porch: $(SRC) deps.edn
+	$(CLJC) $(BUNDLE) src/porch.clj $@
 
 # Static: no glibc version to match, which is what you want when the tilde box
 # isn't the box you built on.
-wall-static: $(SRC) deps.edn
-	$(CLJC) $(BUNDLE) --static src/wall.clj $@
+porch-static: $(SRC) deps.edn
+	$(CLJC) $(BUNDLE) --static src/porch.clj $@
 
 test:
-	$(CLJC) test wall_test.clj
+	$(CLJC) test porch_test.clj
 
 # Exercise the real commands against a throwaway $HOME, so a `make check` can
-# never scribble on your actual wall.
-check: wall
+# never scribble on your actual porch.
+check: porch
 	@tmp=$$(mktemp -d); \
-	 HOME=$$tmp WALL_USER=$$USER ./wall post "smoke test" >/dev/null; \
-	 HOME=$$tmp WALL_USER=$$USER ./wall ls; \
+	 HOME=$$tmp PORCH_USER=$$USER ./porch post "smoke test" >/dev/null; \
+	 HOME=$$tmp PORCH_USER=$$USER ./porch ls; \
 	 rm -rf $$tmp
 
-install: wall
+install: porch
 	install -d $(BINDIR)
-	install -m 755 wall $(BINDIR)/wall
+	install -m 755 porch $(BINDIR)/porch
 
 uninstall:
-	rm -f $(BINDIR)/wall
+	rm -f $(BINDIR)/porch
 
 clean:
-	rm -f wall wall-static
+	rm -f porch porch-static

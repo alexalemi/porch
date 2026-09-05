@@ -1,5 +1,5 @@
 ;; cljc splices :paths into *load-path*, walking up from the cwd to find this
 ;; file (same rule clj and bb use), so `cljc test.clj` and an nREPL started
-;; anywhere in the tree both resolve (require '[wall.tid]). Only :paths is
+;; anywhere in the tree both resolve (require '[porch.tid]). Only :paths is
 ;; honoured — cljc has no Maven/git resolver, so :deps here would be inert.
 {:paths ["src"]}

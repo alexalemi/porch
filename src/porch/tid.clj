@@ -1,4 +1,4 @@
-(ns wall.tid
+(ns porch.tid
   "TIDs: 13-char sortable timestamp identifiers.
 
    64 bits, base32-encoded in an alphabet whose ASCII order matches its digit

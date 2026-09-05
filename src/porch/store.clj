@@ -1,14 +1,14 @@
-(ns wall.store
+(ns porch.store
   "Where things live on disk, and how addresses map onto files.
 
    An address is `user/collection/rkey` with no extension. Text collections
    resolve to a `.md` file; reference collections are bare, because they carry
    no body worth putting in markdown."
   (:require [clojure.string :as str]
-            [wall.doc :as doc]))
+            [porch.doc :as doc]))
 
 ;; Deliberately NOT (load-file "fs.clj"): that battery reaches the filesystem
-;; through the FFI, which makes a bundled `wall` shell out to `cc` on first run
+;; through the FFI, which makes a bundled `porch` shell out to `cc` on first run
 ;; and dlopen a .so from a world-writable, content-addressed /tmp path — on a
 ;; shared box, any user could plant that .so ahead of you. cljc/list-dir*,
 ;; cljc/dir?* and cljc/env* are natives and need none of that.
@@ -17,15 +17,15 @@
 (def ref-collections  #{"likes" "feeds" "reactions"})
 (def collections (into text-collections ref-collections))
 
-(defn me [] (or (cljc/env* "WALL_USER") (cljc/env* "USER")))
+(defn me [] (or (cljc/env* "PORCH_USER") (cljc/env* "USER")))
 
 (def ^:dynamic *homes*
   "Where home directories live. nil means the real thing — /home, with $HOME
-   honoured for the current user. Set it (via $WALL_HOMES) or bind it to a temp
-   dir and you get a whole throwaway box: several users, their own walls, no
-   root and no real accounts. That's how the tests stay off your real wall, and
+   honoured for the current user. Set it (via $PORCH_HOMES) or bind it to a temp
+   dir and you get a whole throwaway box: several users, their own porches, no
+   root and no real accounts. That's how the tests stay off your real porch, and
    how you can try a multi-user timeline before anyone else is on the machine."
-  (cljc/env* "WALL_HOMES"))
+  (cljc/env* "PORCH_HOMES"))
 
 (defn home
   "A user's home directory."
@@ -35,7 +35,7 @@
     (= user (me))  (or (cljc/env* "HOME") (str "/home/" user))
     :else          (str "/home/" user)))
 
-(defn wall-dir [user] (str (home user) "/.wall"))
+(defn porch-dir [user] (str (home user) "/.porch"))
 
 (defn- exists? [p]
   (or (cljc/dir?* p)
@@ -49,11 +49,11 @@
 (defn path
   "Absolute path of the file backing user/collection/rkey."
   [user collection rkey]
-  (str (wall-dir user) "/" collection "/" rkey (ext collection)))
+  (str (porch-dir user) "/" collection "/" rkey (ext collection)))
 
 (defn parse-addr
   "\"sam/posts/3ab…\" -> [user collection rkey]. A leading @ is tolerated so
-   `wall like @sam/posts/…` reads naturally."
+   `porch like @sam/posts/…` reads naturally."
   [addr]
   (let [parts (str/split (str/replace addr #"^@" "") #"/")]
     (when-not (= 3 (count parts))
@@ -76,24 +76,24 @@
   "Write {:front :body} to user/collection/rkey, creating the collection dir."
   [user collection rkey d]
   (let [p (path user collection rkey)]
-    (sh (str "mkdir -p " (pr-str (str (wall-dir user) "/" collection))))
+    (sh (str "mkdir -p " (pr-str (str (porch-dir user) "/" collection))))
     (spit p (doc/render d))
     p))
 
 (defn rkeys
   "The rkeys in user/collection, in TID (i.e. chronological) order."
   [user collection]
-  (let [dir (str (wall-dir user) "/" collection)]
+  (let [dir (str (porch-dir user) "/" collection)]
     (when (cljc/dir?* dir)
       (->> (cljc/list-dir* dir)
            (map (fn [n] (str/replace n #"\.md$" "")))
            sort))))
 
 (defn users
-  "Everyone on the box with a .wall — the whole federation, such as it is."
+  "Everyone on the box with a .porch — the whole federation, such as it is."
   []
   (->> (cljc/list-dir* (or *homes* "/home"))
-       (filter (fn [u] (cljc/dir?* (wall-dir u))))
+       (filter (fn [u] (cljc/dir?* (porch-dir u))))
        sort))
 
 (defn docs

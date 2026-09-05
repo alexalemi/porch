@@ -1,9 +1,9 @@
-;; Run: cljc test wall_test.clj
+;; Run: cljc test porch_test.clj
 ;;
 ;; NOT named test.clj — `cljc test` starts with (load-file "test.clj") to pull
 ;; in the battery, and `.` leads the load path, so a project-local test.clj
 ;; shadows it and run-tests never gets defined.
-(require '[wall.tid :as tid] '[wall.doc :as doc])
+(require '[porch.tid :as tid] '[porch.doc :as doc])
 
 (deftest tid-encoding
   (is (= 13 (count (tid/encode 12345))) "13 chars")
@@ -68,10 +68,10 @@
     (is (= d (doc/parse (doc/render d))) (str "round-trips: " (pr-str d)))))
 
 ;; ── store / collections ────────────────────────────────────────────────────
-;; These write to a throwaway $HOME so they can never touch a real wall.
-(require '[wall.store :as store])
+;; These write to a throwaway $HOME so they can never touch a real porch.
+(require '[porch.store :as store])
 
-(def box (str "/tmp/wall-test-" (cljc/getpid)))
+(def box (str "/tmp/porch-test-" (cljc/getpid)))
 (sh (str "rm -rf " (pr-str box)))
 
 (deftest collections
@@ -100,7 +100,7 @@
       (is (= 1 (count (store/rkeys me c))) (str c ": one entry")))
     (is (nil? (store/read-doc (store/addr me "posts" "3zzzzzzzzzzzz")))
         "a dangling address reads as nil, not an error")
-    (is (= [me] (store/users)) "users lists whoever has a .wall on this box"))))
+    (is (= [me] (store/users)) "users lists whoever has a .porch on this box"))))
 
 (deftest likes-are-idempotent
   (binding [store/*homes* box]
@@ -126,7 +126,7 @@
                                                     :body (if (= c "links") "" "hi\n")})
                            [k u c])))
             idx (store/index (store/users) ["posts" "blog" "links"])]
-        (is (= #{"alemi" "sam" "vi"} (set (store/users))) "every user with a wall is found")
+        (is (= #{"alemi" "sam" "vi"} (set (store/users))) "every user with a porch is found")
         (is (= (reverse order) idx) "merged newest-first across users and collections")
         (is (= 4 (count (store/index (store/users) ["posts"]))) "collections filter")
         (is (= 2 (count (store/index ["alemi"] ["posts"]))) "users filter")))))
