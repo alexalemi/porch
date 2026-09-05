@@ -19,7 +19,7 @@ Every user has their own `~/.porch/` which contains files they author.
 
 `porch` is the command line tool (`porch post`, `porch like`, `porch react`,
 `porch timeline` …) and `porch tui` is a keyboard-driven front end over the same
-files. It's written in [cljc](../cljc); the TUI needs cljc's `cljc/raw-mode*`,
+files. It's written in [cljc](https://github.com/alexalemi/cljc); the TUI needs cljc's `cljc/raw-mode*`,
 `cljc/read-key*` and `cljc/term-size*` natives, and deliberately not ncurses:
 that would only be reachable through the FFI, which compiles and `dlopen`s a
 shared object from `/tmp` at runtime — a real hazard on a multi-user box.
