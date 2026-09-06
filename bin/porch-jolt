@@ -1,0 +1,13 @@
+#!/bin/sh
+# Run porch on jolt. Same recipe as bin/porch-bb — load the bb/cljc.clj shim,
+# intern cljc's bare globals `sh` and `*args*` into the namespaces that use
+# them — but a plain require: jolt's require still loads a namespace that
+# create-ns pre-made, and :reload-all would bypass its AOT cache (~11s vs
+# ~0.5s a run). The cache lives in $HOME/.jolt and ./.jolt.
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root" && exec jolt -M:jolt -e "
+(require 'cljc)
+(.addShutdownHook (Runtime/getRuntime) (Thread. flush))
+(intern (create-ns 'porch.store) 'sh cljc/sh)
+(intern (create-ns 'porch) '*args* (vec *command-line-args*))
+(require 'porch)" "$@"

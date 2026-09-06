@@ -1,6 +1,11 @@
 # build products
 /porch
 /porch-static
+/porch-jolt
 
 # written by `cljc --nrepl`
 /.nrepl-port
+
+# jolt compile caches (jolt also keeps one under $HOME/.jolt)
+/.jolt
+/porch-jolt.build/

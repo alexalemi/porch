@@ -1,0 +1,3 @@
+;; Babashka entry: `bb/` holds the shim for cljc's natives. cljc ignores this
+;; file (it only reads deps.edn), so the two runtimes can't trip each other.
+{:paths ["src" "bb"]}

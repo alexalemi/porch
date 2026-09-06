@@ -2,4 +2,9 @@
 ;; file (same rule clj and bb use), so `cljc test.clj` and an nREPL started
 ;; anywhere in the tree both resolve (require '[porch.tid]). Only :paths is
 ;; honoured — cljc has no Maven/git resolver, so :deps here would be inert.
-{:paths ["src"]}
+;;
+;; The :jolt alias is for bin/porch-jolt: bb/ has the shim for cljc's natives,
+;; jolt/ the two pure-Clojure libraries jolt doesn't bundle (see jolt/README.md).
+;; cljc never reads :aliases, so it stays on plain src/.
+{:paths ["src"]
+ :aliases {:jolt {:extra-paths ["bb" "jolt"]}}}

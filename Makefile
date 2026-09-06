@@ -13,7 +13,7 @@ BUNDLE   = $(SHAREDIR)/bundle.clj
 
 SRC = src/porch.clj $(wildcard src/porch/*.clj)
 
-.PHONY: all test run clean install uninstall
+.PHONY: all test test-bb test-jolt run clean install uninstall
 all: porch
 
 # bundle.clj embeds porch.clj plus every .clj it transitively requires — our
@@ -29,6 +29,20 @@ porch-static: $(SRC) deps.edn
 
 test:
 	$(CLJC) test porch_test.clj
+
+# Same suite on Babashka, through the bb/cljc.clj shim; see bb/test_runner.clj
+# for what it has to paper over.
+test-bb:
+	bb bb/test_runner.clj
+
+test-jolt:
+	jolt -A:jolt run bb/test_runner.clj
+
+# A jolt binary. ~28M and still needs $HOME/.jolt for a compile cache on first
+# run, because porch.clj exits at load time and so can only be required from
+# inside -main; see jolt/porch/jolt_main.clj.
+porch-jolt: $(SRC) deps.edn bb/cljc.clj jolt/porch/jolt_main.clj
+	jolt -A:jolt build -m porch.jolt-main -o $@
 
 # Exercise the real commands against a throwaway $HOME, so a `make check` can
 # never scribble on your actual porch.
@@ -46,4 +60,4 @@ uninstall:
 	rm -f $(BINDIR)/porch
 
 clean:
-	rm -f porch porch-static
+	rm -rf porch porch-static porch-jolt porch-jolt.build

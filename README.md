@@ -24,6 +24,15 @@ files. It's written in [cljc](https://github.com/alexalemi/cljc); the TUI needs 
 that would only be reachable through the FFI, which compiles and `dlopen`s a
 shared object from `/tmp` at runtime — a real hazard on a multi-user box.
 
+It also runs unmodified on [Babashka](https://babashka.org) and
+[jolt](https://github.com/alexalemi/jolt): `bin/porch-bb` and `bin/porch-jolt`
+load `bb/cljc.clj`, a namespace literally named `cljc` that reimplements the
+handful of natives (env, dir listing, clock, pid, raw terminal via `stty`).
+jolt additionally needs the pure-Clojure `clj-yaml` and `babashka.cli` copies
+in `jolt/`, reached through the `:jolt` alias in deps.edn. `make test-bb` and
+`make test-jolt` run the same test file there; `make porch-jolt` builds a jolt
+binary. cljc stays the primary target and is what `make` bundles.
+
 Where a `<tid>` is a TID: a 13-character string encoding microseconds since the
 epoch plus a small clock ID, in base32 alphabet chosen so that the alphabetical
 order is chronological. This way `ls` gives you the timeline for free and the

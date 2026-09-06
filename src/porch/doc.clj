@@ -52,5 +52,5 @@
   [{:keys [front body]}]
   (let [body (or body "")]
     (if (seq front)
-      (str "---\n" (str/trim (yaml/generate-string front)) "\n---\n" body)
+      (str "---\n" (str/trim (yaml/generate-string front :dumper-options {:flow-style :block})) "\n---\n" body)
       body)))
