@@ -9,12 +9,12 @@
 (require 'cljc)
 (use 'clojure.test)
 ;; bb loads the test file into user, jolt into jolt.main.
-(doseq [n '[user jolt.main porch.store]] (intern (create-ns n) 'sh cljc/sh))
+(doseq [n '[user jolt.main porch.store porch.web]] (intern (create-ns n) 'sh cljc/sh))
 ;; bb's require skips a namespace create-ns already made, so it needs :reload-all;
 ;; jolt's doesn't, and its :reload-all path miscompiles `reverse` in store/index.
 (if (System/getProperty "babashka.version")
-  (require 'porch.store :reload-all)
-  (require 'porch.store))
+  (require 'porch.store 'porch.web :reload-all)
+  (require 'porch.store 'porch.web))
 (load-file "porch_test.clj")
 (let [vs (->> (all-ns) (mapcat (comp vals ns-interns)) (filter (comp :test meta)) (sort-by (comp :line meta)))
       r  (binding [*report-counters* (ref *initial-report-counters*)]

@@ -153,3 +153,32 @@
                              [u (get-in d [:front :emoji])])))))
           {}
           (index users ["likes" "reactions"])))
+
+;; ── profile ────────────────────────────────────────────────────────────────
+;; One per user, at ~/.porch/profile — not a collection. It has no rkey and no
+;; TID, so it never turns up in `index` or a timeline: it says who you are, not
+;; what you said. Bare, like the reference collections, because the extension
+;; rule is per-collection and this isn't one.
+
+(defn profile-path [user] (str (porch-dir user) "/profile"))
+
+(defn read-profile
+  "A user's {:front {:name :links} :body bio}, or nil if they haven't written one.
+   Like read-doc, absence is a value."
+  [user]
+  (let [p (profile-path user)]
+    (when (exists? p) (doc/parse (slurp p)))))
+
+(defn write-profile!
+  "Write {:front :body} as user's profile, creating .porch if needed."
+  [user d]
+  (let [p (profile-path user)]
+    (sh (str "mkdir -p " (pr-str (porch-dir user))))
+    (spit p (doc/render d))
+    p))
+
+(defn display-name
+  "The name a user chose, falling back to the login. Cheap enough to call per
+   row: one small file, and nil when it isn't there."
+  [user]
+  (or (get-in (read-profile user) [:front :name]) user))

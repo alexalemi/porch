@@ -45,3 +45,15 @@
                       (->> reactions (map second) frequencies (sort-by (comp - second))
                            (map (fn [[e n]] (str e n)))))]
     (when (seq parts) (str/join " " parts))))
+
+(defn iso-now
+  "The current instant as ISO-8601 UTC, to the second: `edited: 2026-09-07T10:41:03Z`.
+   Not a TID — this goes in the front matter, where a person editing the file
+   in vim should be able to read and write it."
+  []
+  (str (java.time.Instant/ofEpochMilli (* 1000 (quot (cljc/now-us*) 1000000)))))
+
+(defn edited-mark
+  "\" · edited\" when the doc carries an edited: stamp, else \"\"."
+  [d]
+  (if (get-in d [:front :edited]) " · edited" ""))

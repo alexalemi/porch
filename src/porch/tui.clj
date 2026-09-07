@@ -14,7 +14,9 @@
             [porch.tid :as tid]
             [porch.doc :as doc]
             [porch.store :as store]
-            [porch.fmt :as fmt]))
+            [porch.fmt :as fmt]
+            [porch.text :as text]
+            [porch.web :as web]))
 
 ;; ── terminal ───────────────────────────────────────────────────────────────
 
@@ -63,10 +65,16 @@
 ;; ── model ──────────────────────────────────────────────────────────────────
 
 (def ^:private all-colls ["posts" "blog" "links" "likes" "reactions" "feeds"])
+(defn- mentions-me? [d] (some #{(store/me)} (text/mentions (:body d))))
+
+;; [name collections predicate?]. A predicate has to open every doc in the
+;; index, which the plain filters never do — fine for one user's mentions on
+;; a tilde box, not something to add casually.
 (def ^:private filters [["all" ["posts" "blog" "links"]]
                         ["posts" ["posts"]]
                         ["blog" ["blog"]]
                         ["links" ["links"]]
+                        ["mentions" ["posts" "blog" "links"] mentions-me?]
                         ["everything" all-colls]])
 
 (defn- load-state
@@ -75,8 +83,9 @@
    because every row shows its counts."
   [state]
   (let [users (store/users)
-        [_ colls] (nth filters (:filter state))
-        entries (vec (store/index users colls))]
+        [_ colls pred] (nth filters (:filter state))
+        entries (vec (cond->> (store/index users colls)
+                       pred (filter (fn [[k u c]] (some-> (store/read-doc (store/addr u c k)) pred)))))]
     (assoc state
            :users users
            :entries entries
@@ -114,7 +123,7 @@
         head (format "%-8s %-9s " (fmt/clip (str "@" u) 8) (fmt/ago (tid/micros k)))
         tail (if counts (str "  " counts) "")
         room (max 8 (- width (count head) (count tail) 4))
-        body (str (when reply? "↳ ") (fmt/summarize c d room))]
+        body (str (when reply? "↳ ") (when (get-in d [:front :edited]) "✎ ") (fmt/summarize c d room))]
     (str head (fmt/clip body room) tail)))
 
 (defn- draw [state]
@@ -170,7 +179,7 @@
    "p          new post        r          reply to the selected entry"
    "l          like it         e          react with an emoji"
    "L          recommend a link"
-   "t          cycle the filter (all → posts → blog → links → everything)"
+   "t          cycle the filter (all → posts → blog → links → mentions → everything)"
    "R          re-read the box (someone else may have posted)"
    "q / Esc    quit"
    ""
@@ -229,7 +238,7 @@
 
 (defn- link! [state]
   (if-let [url (prompt "link url:")]
-    (let [title (prompt "title (optional):")
+    (let [title (or (prompt "title (optional, blank to fetch):") (web/fetch-title url))
           why (prompt "why (optional):")]
       (write! state "links" (cond-> {:url url} title (assoc :title title))
               (if why (str why "\n") "")))

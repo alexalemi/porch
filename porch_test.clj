@@ -3,7 +3,7 @@
 ;; NOT named test.clj — `cljc test` starts with (load-file "test.clj") to pull
 ;; in the battery, and `.` leads the load path, so a project-local test.clj
 ;; shadows it and run-tests never gets defined.
-(require '[porch.tid :as tid] '[porch.doc :as doc])
+(require '[porch.tid :as tid] '[porch.doc :as doc] '[porch.fmt :as fmt])
 
 (deftest tid-encoding
   (is (= 13 (count (tid/encode 12345))) "13 chars")
@@ -148,3 +148,50 @@
         (let [t (store/tally (store/users))]
           (is (= ["sam"] (get-in t [subject :likes])) "tally: likes by user")
           (is (= #{[me "🔥"] [me "👀"]} (set (get-in t [subject :reactions]))) "tally: reactions"))))))
+
+(deftest profile
+  ;; A singleton beside the collections: no rkey, no TID, never in the index.
+  (let [box4 (str box "-profile")]
+    (sh (str "rm -rf " (pr-str box4)))
+    (binding [store/*homes* box4]
+      (let [me (store/me)
+            p {:front {:name "Sam Smith" :links ["https://sam.example" "gemini://sam"]}
+               :body "I make things.\n"}]
+        (is (nil? (store/read-profile me)) "no profile reads as nil")
+        (is (= me (store/display-name me)) "display-name falls back to the login")
+        (is (= (str (store/porch-dir me) "/profile") (store/write-profile! me p))
+            "lives at .porch/profile, bare")
+        (is (= p (store/read-profile me)) "name, links and bio survive the disk")
+        (is (= "Sam Smith" (store/display-name me)) "display-name prefers the profile")
+        (store/write-doc! me "posts" (tid/next-tid) {:front nil :body "hi\n"})
+        (is (= 1 (count (store/index [me] store/collections))) "the profile is not an entry")
+        (is (= [me] (store/users)) "a profile alone counts as having a porch")))))
+
+;; ── text: mentions and tags ────────────────────────────────────────────────
+(require '[porch.text :as text] '[porch.web :as web])
+
+(deftest tags-and-mentions
+  (is (= ["cnc" "a-b"] (text/tags "hi #cnc and #a-b, #CNC again")) "distinct, ordered, lowercased")
+  (is (= [] (text/tags "http://x/#frag and #1 and &#39;")) "URL fragments, numbers and entities aren't tags")
+  (is (= ["cnc"] (text/tags "#cnc")) "a tag at the start of the body")
+  (is (= ["sam" "vi"] (text/mentions "hi @sam, and @vi. @sam again")) "distinct, ordered, as written")
+  (is (= [] (text/mentions "mail me@x.org or see /path/@x")) "emails and paths aren't mentions")
+  (is (= [] (text/mentions nil)) "nil body is fine")
+  (is (= "cnc" (text/strip-tag "#cnc")) "strip-tag tolerates the hash")
+  (is (= "sam" (text/strip-mention "@sam")) "strip-mention tolerates the at"))
+
+(deftest web-title
+  (is (= "Example Domain" (web/title-of "<html><head><title>Example Domain</title></head>")) "plain")
+  (is (= "Hi & there" (web/title-of "<TITLE lang=en>\n  Hi &amp;\n  there </TITLE>")) "case, whitespace, entities")
+  (is (= "it’s <b>" (web/decode-entities "it&#8217;s &lt;b&gt;")) "numeric and named entities")
+  (is (= "&bogus;" (web/decode-entities "&bogus;")) "unknown entities are left alone")
+  (is (nil? (web/title-of "<p>no title</p>")) "no title is nil")
+  (is (nil? (web/title-of "<title>   </title>")) "an empty title is nil")
+  (is (nil? (web/fetch-title "http://127.0.0.1:1/nope")) "an unreachable url is nil, not an error"))
+
+(deftest edited-stamp
+  (is (re-matches #"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ" (fmt/iso-now)) "ISO-8601 UTC to the second")
+  (is (= "" (fmt/edited-mark {:front {}})) "no mark without a stamp")
+  (is (= " · edited" (fmt/edited-mark {:front {:edited "2026-09-07T10:00:00Z"}})) "marked when stamped")
+  (let [d {:front {:title "T" :edited (fmt/iso-now)} :body "v2\n"}]
+    (is (= d (doc/parse (doc/render d))) "edited: survives the disk as a string")))

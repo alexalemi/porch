@@ -17,7 +17,7 @@ Every user has their own `~/.porch/` which contains files they author.
         likes/<tid>          # one subject each
         reactions/<tid>      # one subject and one emoji each
         feeds/<tid>          # RSS feeds you recommend
-        profile              # name, links, bio  (planned, see below)
+        profile              # name, links, bio — one per user
 
 Text collections (`posts`, `blog`, `links`) carry a markdown body and get a
 `.md` extension. Reference collections (`likes`, `reactions`, `feeds`) are
@@ -34,14 +34,19 @@ everywhere; every reader treats a missing file as absence, not an error.
 
 ```
 porch tui                                 browse, post, reply, like, react — interactively
-porch timeline [--limit N] [--user U] [--coll C]
+porch timeline [--limit N] [--user U] [--coll C] [--tag T] [--mention U]
                                           everyone's porch, newest first
+porch mentions [user]                     posts that mention you
 porch post <text…>                        a short post; --reply <addr> to reply
+porch edit <addr> [text…]                 replace the body of your own post
 porch blog --title T [text…]              a long post; body from argv or stdin
-porch link <url> [--title T] [why…]       recommend a link
+porch link <url> [--title T] [why…]       recommend a link; the title is fetched if omitted
 porch like <addr>                         like any address
 porch react <addr> <emoji>                react to any address
 porch feed <url> [--title T]              publish a feed you read
+porch profile [user]                      show a profile, yours by default
+porch profile --name N [--link URL…] [bio…]
+                                          write yours; bio from argv or stdin
 porch ls [user] [coll]                    addresses, oldest first
 porch cat <addr>                          show one document
 porch users                               everyone on this box with a porch
@@ -50,7 +55,10 @@ porch tid                                 print a fresh TID
 
 Commands that create something print the new address. `post` and `blog` take
 the body from the remaining arguments, or from stdin when there are none, so
-`porch blog --title T < draft.md` works. Liking or reacting with the same emoji
+`porch blog --title T < draft.md` works, and so does `porch edit`. `porch link`
+without `--title` asks the page for one through `curl`, which is the only time
+porch touches the network; `--no-fetch` keeps it off, and a page with no title
+is still a fine link. Liking or reacting with the same emoji
 twice is one statement and reuses the existing file rather than stacking
 duplicates. Option values must be given with long flags (`--limit 5`, not
 `-n 5`): short flags are booleans and never consume a value.
@@ -117,6 +125,13 @@ ever silently dropped.
 - `posts/` — the body is the post; top-level posts have no front matter at
   all. A reply has `reply: {root: <addr>, parent: <addr>}`, where root is the
   parent's root if it has one, otherwise the parent itself.
+- Any text collection may carry `edited: <ISO-8601 UTC>`, which `porch edit`
+  stamps and timelines show as `· edited`. The TID stays the creation time.
+- Mentions (`@sam`) and tags (`#cnc`) are parsed from the body, never
+  declared. A tag starts with a letter and is compared lowercased; neither
+  matches inside a URL, an email or a path, so `http://x/#frag` and
+  `me@x.org` are prose. `timeline --tag`, `--mention` and `porch mentions`
+  filter on them, and the TUI has a mentions filter.
 - `blog/` — `title:` required; the body is the article. Separate from posts
   so it can be collapsed.
 - `links/` — `url:` required, `title:` optional; the body is why you're
@@ -127,12 +142,12 @@ ever silently dropped.
   different emoji per subject are fine; the same one twice is one file.
 - `feeds/` — `url:` plus optional `title:` (fenced, no body). This publishes
   "I read this feed".
+- `profile` — `name:` required, `links:` an optional list of URLs; the body
+  is the bio. One per user, bare, beside the collections rather than in one:
+  it has no TID, so it never appears in a timeline. `porch users` shows the
+  name next to the login when there is one.
 
 ### Planned, not yet implemented
 
-- `profile` — `name:`, optional `links:`, body is the bio.
-- Mentions (`@sam`) and tags (`#cnc`) parsed from post bodies, not declared.
-- An optional `edited:` timestamp on posts.
-- `porch link` fetching a missing title.
 - A shared feed fetcher caching entries under `/var/cache/porch/`, never
   inside anyone's `.porch`, so it needs no write access to home directories.

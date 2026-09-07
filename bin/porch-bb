@@ -1,6 +1,6 @@
 #!/bin/sh
 # Run porch on Babashka instead of cljc. Loads the bb/cljc.clj shim, then
-# interns the two cljc root globals porch uses unqualified (`sh` in
+# interns the cljc root globals porch uses unqualified (`sh` in
 # porch.store, `*args*` in porch) before the sources are analysed, so the
 # .clj files stay byte-identical for both runtimes. create-ns makes sci think
 # the ns is already loaded, hence :reload-all to force the real files in.
@@ -8,6 +8,6 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root" && exec bb -e "
 (require 'cljc)
 (.addShutdownHook (Runtime/getRuntime) (Thread. flush)) ; JVM System/exit drops unflushed *out*
-(intern (create-ns 'porch.store) 'sh cljc/sh)
+(doseq [n '[porch.store porch.web]] (intern (create-ns n) 'sh cljc/sh))
 (intern (create-ns 'porch) '*args* (vec *command-line-args*))
 (require 'porch :reload-all)" -- "$@"
