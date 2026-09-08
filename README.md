@@ -1,4 +1,4 @@
-# atilde
+# porch
 
 This is like the AT protocol but for a tilde server. `atilde` is the idea;
 `porch` is the tool.
